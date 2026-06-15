@@ -54,3 +54,5 @@ docker run --rm -v "${PWD}:/lab" -w /lab python:3.12-slim bash -lc "chmod +x bin
 - `status ok = 120`.
 - Scorer public: `120/120 correct`.
 - Headline score: `100.0 / 100`.
+
+- score private: `100.0 / 100`.
