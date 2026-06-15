@@ -1,12 +1,96 @@
 {
-  "team": "TODO-team-name",
+  "team": "dat",
   "schema_version": 1,
   "findings": [
     {
       "fault_class": "latency_spike",
-      "evidence": {"metric": "latency_p95_ms", "observed": "TODO from your telemetry", "trace_ids": []},
-      "root_cause": "TODO: what config knob or behavior causes it?",
-      "suggested_fix": "TODO: config change and/or wrapper mitigation"
+      "evidence": {
+        "metric": "latency_p95_ms",
+        "observed": "p95 latency exceeded 13000ms with max latency reaching 23980ms",
+        "trace_ids": ["req-bfcf0be7", "req-5c884da1"]
+      },
+      "root_cause": "model_price_tier is set to premium and context_size is set to 8, leading to heavy inference latency.",
+      "suggested_fix": "Change model_price_tier to standard and reduce context_size to 2."
+    },
+    {
+      "fault_class": "cost_blowup",
+      "evidence": {
+        "metric": "cost_usd",
+        "observed": "Average cost per call is around $0.002 due to ~19,500 prompt tokens per single-turn request.",
+        "trace_ids": ["req-4afaff6c", "req-5e078b06"]
+      },
+      "root_cause": "context_size is set to 8 and model_price_tier is set to premium, causing large prompt injection of context/history.",
+      "suggested_fix": "Change model_price_tier to standard and reduce context_size to 2."
+    },
+    {
+      "fault_class": "error_spike",
+      "evidence": {
+        "metric": "tool_error_rate",
+        "observed": "Tool calls fail intermittently with error rate of 18%.",
+        "trace_ids": ["req-d3568103", "req-c8a6421c"]
+      },
+      "root_cause": "tool_error_rate is set to 0.18 in config.json.",
+      "suggested_fix": "Set tool_error_rate to 0.0 in config.json and keep retry enabled."
+    },
+    {
+      "fault_class": "quality_drift",
+      "evidence": {
+        "metric": "session_drift_rate",
+        "observed": "session_drift_rate of 0.06 is configured, leading to degraded answer quality and private coupon corruption over turns.",
+        "trace_ids": []
+      },
+      "root_cause": "session_drift_rate is non-zero (0.06) in config.json.",
+      "suggested_fix": "Set session_drift_rate to 0.0 in config.json."
+    },
+    {
+      "fault_class": "tool_overuse",
+      "evidence": {
+        "metric": "tools_used",
+        "observed": "The agent calls get_discount and calc_shipping even when not required, and tool_budget is set to 5.",
+        "trace_ids": ["req-4afaff6c", "req-ba231754"]
+      },
+      "root_cause": "tool_budget is set to 5 and prompt lacks tight instructions to economize tool usage.",
+      "suggested_fix": "Set tool_budget to 3 and instruct the prompt to only call necessary tools once."
+    },
+    {
+      "fault_class": "pii_leak",
+      "evidence": {
+        "metric": "pii_redacted",
+        "observed": "Raw customer phone numbers/emails are echoed back in the answers, requiring regex redaction.",
+        "trace_ids": ["req-27a17854", "req-e74e9c18"]
+      },
+      "root_cause": "The prompt lacks clear instructions to not repeat customer phone/email details, and redact_pii is not fully compliant.",
+      "suggested_fix": "Instruct the system prompt to never repeat phone/email, and verify redact_pii is true."
+    },
+    {
+      "fault_class": "infinite_loop",
+      "evidence": {
+        "metric": "max_steps_reached",
+        "observed": "Agent gets stuck in loops and reaches max_steps without returning a result.",
+        "trace_ids": []
+      },
+      "root_cause": "loop_guard is set to false in config.json.",
+      "suggested_fix": "Set loop_guard to true in config.json."
+    },
+    {
+      "fault_class": "tool_failure",
+      "evidence": {
+        "metric": "incorrect_stock_or_shipping_lookup",
+        "observed": "MacBook is incorrectly reported as out of stock due to catalog_override, and unicode cities fail delivery checks.",
+        "trace_ids": []
+      },
+      "root_cause": "catalog_override has fake out-of-stock data and normalize_unicode is false.",
+      "suggested_fix": "Clear catalog_override to {} and set normalize_unicode to true."
+    },
+    {
+      "fault_class": "arithmetic_error",
+      "evidence": {
+        "metric": "incorrect_totals",
+        "observed": "Calculated totals are inconsistent and mathematically incorrect across multiple requests.",
+        "trace_ids": []
+      },
+      "root_cause": "temperature is set to 1.6 in config.json.",
+      "suggested_fix": "Set temperature to 0.2 and add strict verification formula in system prompt."
     }
   ]
 }
